@@ -108,40 +108,55 @@ def parse_row(row):
     return row_dict
 
 
-def process_districts(driver, districts):
+def process_district(driver, district, name):
     final_list = []
-    for district, name in districts.iteritems():
-        print 'Processing %s' % name
+    print 'Processing %s' % name
+    init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
+               '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
+    driver.get(init_url)
+    if district == districts.index[0]:
+        driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
+    result_n = int(
+        driver.find_element_by_class_name('serp-above__count').find_elements_by_tag_name('strong')[0].text)
+    print '%s results' % result_n
+    n_pages = np.ceil(result_n / float(25))
+    for page_n in range(1, int(n_pages) + 1):
         init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
-                   '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
-        driver.get(init_url)
-        if district == districts.index[0]:
-            driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
-        result_n = int(
-            driver.find_element_by_class_name('serp-above__count').find_elements_by_tag_name('strong')[0].text)
-        print '%s results' % result_n
-        n_pages = np.ceil(result_n / float(25))
-        for page_n in range(1, int(n_pages) + 1):
-            init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
-                       '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p={}&totime=86400'.format(
-                district,
-                page_n)
-            if page_n > 1:
-                driver.get(init_url)
-            driver.save_screenshot('screen.png')
-            tbody = driver.find_elements_by_tag_name('tbody')[1]
-            # for tbody in tbodies:
-            rows = tbody.find_elements_by_tag_name('tr')
-            rows = [row for row in rows if row.get_attribute('id').split('_')[0] == 'offer']
-            res = pd.DataFrame(map(parse_row, rows))
-            res.to_pickle('res_%s_%s.pickle' % (district, datetime.datetime.now().strftime('%m%d%H%M%s')))
-            final_list.append(res)
+                   '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p={}&totime=86400'.format(
+            district,
+            page_n)
+        if page_n > 1:
+            driver.get(init_url)
+        driver.save_screenshot('screen.png')
+        tbody = driver.find_elements_by_tag_name('tbody')[1]
+        # for tbody in tbodies:
+        rows = tbody.find_elements_by_tag_name('tr')
+        rows = [row for row in rows if row.get_attribute('id').split('_')[0] == 'offer']
+        res = pd.DataFrame(map(parse_row, rows))
+        # res
+        final_list.append(res)
     res_final = pd.concat(final_list)
-    res_final.to_pickle('final_%s.pickle' % datetime.datetime.now().strftime('%m%d%H%M%s'))
+    res_final.to_pickle('res_%s_%s.pickle' % (district, datetime.datetime.now().strftime('%m%d%H%M%s')))
+
+def main(districts=districts):
+    driver = makePhantomJS()
+    for district, name in districts.iteritems():
+        processed = False
+        while not processed:
+            try:
+                process_district(driver, district, name)
+            except:
+                driver = makePhantomJS()
+                process_district(driver, district, name)
+            else:
+                processed = True
+
+def makePhantomJS():
+    return selenium.webdriver.PhantomJS()
 
 
 if __name__ == '__main__':
-    driver = selenium.webdriver.PhantomJS()
+    # driver = makePhantomJS()
     # driver.get('http://www.cian.ru/kupit-kvartiru/')
     # driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
     # driver.save_screenshot('screen.png')
@@ -158,9 +173,7 @@ if __name__ == '__main__':
 
     # for row in rows:
     #     parse_row(row)
-    districts_ = districts.iloc[78:] #districts[districts=='Рязанский']#
-    process_districts(driver, districts_)
-
+    main()
 
 
 
