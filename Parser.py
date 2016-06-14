@@ -158,8 +158,8 @@ if __name__ == '__main__':
 
     # for row in rows:
     #     parse_row(row)
-
-    process_districts()
+    districts_ = districts.iloc[78:] #districts[districts=='Рязанский']#
+    process_districts(driver, districts_)
 
 
 
