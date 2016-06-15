@@ -153,6 +153,8 @@ def main(districts=districts):
         processed = False
         while not processed:
             processed = process_district(driver, district, name)
+            if not processed:
+                driver = makePhantomJS()
 
 
 def makePhantomJS():
