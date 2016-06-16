@@ -5,6 +5,8 @@ import datetime
 import itertools
 import pandas as pd
 import numpy as np
+import sys
+
 
 from Reference import districts
 
@@ -151,10 +153,14 @@ def main(districts=districts):
     driver = makePhantomJS()
     for district, name in districts.iteritems():
         processed = False
+        n_errors = 0
         while not processed:
             processed = process_district(driver, district, name)
             if not processed:
                 driver = makePhantomJS()
+                n_errors += 1
+                if n_errors > 5:
+                    break
 
 
 def makePhantomJS():
@@ -179,7 +185,7 @@ if __name__ == '__main__':
 
     # for row in rows:
     #     parse_row(row)
-    main()
-
+    main(districts.iloc[120:])
+    # main(districts.iloc[120:]) #good district for exception debugging
 
 
