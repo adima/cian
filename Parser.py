@@ -6,9 +6,22 @@ import itertools
 import pandas as pd
 import numpy as np
 import sys
-
+import multiprocessing as mp
+import logging
 
 from Reference import districts
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('cian.log')
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s' )
+fh.setFormatter(formatter)
+fh.setLevel(logging.DEBUG)
+ch.setFormatter(formatter)
+ch.setLevel(logging.DEBUG)
+logger.addHandler(ch)
+logger.addHandler(fh)
 
 
 def parse_row(row):
@@ -117,6 +130,7 @@ def process_district(driver, district, name):
         init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
                    '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
         driver.get(init_url)
+        [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
         # if district == districts.index[0]:
         #     driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
         result_n = int(
@@ -133,7 +147,9 @@ def process_district(driver, district, name):
             driver.save_screenshot('screen.png')
             tbody = driver.find_elements_by_tag_name('tbody')[1]
             if len(tbody.text) == 0:
+                [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
                 driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
+                [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
                 tbody = driver.find_elements_by_tag_name('tbody')[1]
                 driver.save_screenshot('screen.png')
             # for tbody in tbodies:
@@ -146,26 +162,54 @@ def process_district(driver, district, name):
         res_final.to_pickle('res_%s_%s.pickle' % (district, datetime.datetime.now().strftime('%m%d%H%M%s')))
         return True
     except:
-        print ("Unexpected error:", sys.exc_info()[0])
+        # print ("Unexpected error:", sys.exc_info()[0])
+        logger.exception('Exception %s ' % name)
+        driver.save_screenshot('error_%s_%s.png' % (name, datetime.datetime.now().strftime('%m%d%H%M%s')))
         return False
 
 def main(districts=districts):
     driver = makePhantomJS()
     for district, name in districts.iteritems():
-        processed = False
-        n_errors = 0
-        while not processed:
-            processed = process_district(driver, district, name)
-            if not processed:
-                driver = makePhantomJS()
-                n_errors += 1
-                if n_errors > 5:
-                    break
+        main_district(district, name, driver)
+
+
+def main_district(district, name, driver=None):
+    if driver is None:
+        driver = makePhantomJS()
+    processed = False
+    n_errors = 0
+    while not processed:
+        processed = process_district(driver, district, name)
+        if not processed:
+            driver = makePhantomJS()
+            n_errors += 1
+            if n_errors > 5:
+                break
+
+def main_district_cc(q_in, i):
+    print 'Starting thread # %s' % (i + 1)
+    while not q_in.empty():
+        district, name = q_in.get()
+        # driver = makePhantomJS()
+        main_district(district, name)
+
+
+def mainConc(districts, n_threads):
+    manager = mp.Manager()
+    q_in = manager.Queue()
+    [q_in.put((district, name)) for district, name in districts.iteritems()]
+    processes = [mp.Process(target=main_district_cc, args=(q_in, i))
+                             for i in range(n_threads)]
+    [p.start() for p in processes]
+    [p.join() for p in processes]
 
 
 def makePhantomJS():
-    return selenium.webdriver.PhantomJS()
-
+    driver = selenium.webdriver.PhantomJS()
+    # driver = selenium.webdriver.Firefox()
+    driver.implicitly_wait(60)
+    return driver
+    # return selenium.webdriver.Firefox()
 
 if __name__ == '__main__':
     # driver = makePhantomJS()
@@ -185,7 +229,7 @@ if __name__ == '__main__':
 
     # for row in rows:
     #     parse_row(row)
-    main(districts.iloc[120:])
+    # main(districts.iloc[120:])
     # main(districts.iloc[120:]) #good district for exception debugging
-
+    mainConc(districts, 2)
 
