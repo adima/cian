@@ -8,6 +8,7 @@ import numpy as np
 import sys
 import multiprocessing as mp
 import logging
+import time
 
 from Reference import districts
 
@@ -129,7 +130,15 @@ def process_district(driver, district, name):
         print 'Processing %s' % name
         init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
                    '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
-        driver.get(init_url)
+        page_loaded = False
+        while not page_loaded:
+            try:
+                driver.get(init_url)
+                page_loaded = True
+            except:
+                logger.exception('Loading page exception')
+                page_loaded = False
+
         [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
         # if district == districts.index[0]:
         #     driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
@@ -143,13 +152,30 @@ def process_district(driver, district, name):
                 district,
                 page_n)
             if page_n > 1:
-                driver.get(init_url)
+                page_loaded = False
+                while not page_loaded:
+                    try:
+                        driver.get(init_url)
+                        page_loaded = True
+                    except:
+                        logger.exception('Loading page exception')
+                        page_loaded = False
             driver.save_screenshot('screen.png')
             tbody = driver.find_elements_by_tag_name('tbody')[1]
             if len(tbody.text) == 0:
-                [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
-                driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
-                [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
+                page_loaded = False
+                while not page_loaded:
+                    try:
+                        [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
+                        driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
+                        page_loaded = True
+                    except:
+                        logger.exception('Switch to other view')
+                        page_loaded = False
+
+                        # [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
+                        # driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
+                    # [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
                 tbody = driver.find_elements_by_tag_name('tbody')[1]
                 driver.save_screenshot('screen.png')
             # for tbody in tbodies:
@@ -231,5 +257,5 @@ if __name__ == '__main__':
     #     parse_row(row)
     # main(districts.iloc[120:])
     # main(districts.iloc[120:]) #good district for exception debugging
-    mainConc(districts, 2)
+    mainConc(districts.ix[28:], 6)
 
