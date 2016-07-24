@@ -4,8 +4,8 @@ import multiprocessing as mp
 
 import numpy as np
 import pandas as pd
-import selenium.webdriver
-
+import requests
+import time
 from Parser import parse_row
 from Reference import districts
 
@@ -18,9 +18,10 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s' )
 def process_district(driver, district, name):
     try:
         final_list = []
-        print 'Processing %s' % name
+        logger.info('Processing %s' % name)
         init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
                    '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
+        cook = {'serp_view_mode': 'table'}
         page_loaded = False
         while not page_loaded:
             try:
@@ -29,6 +30,7 @@ def process_district(driver, district, name):
             except:
                 logger.exception('Loading page exception')
                 page_loaded = False
+                time.sleep(5)
 
         [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
         # if district == districts.index[0]:
@@ -93,21 +95,13 @@ def process_district(driver, district, name):
         return False
 
 
-def main(districts=districts):
-    driver = makePhantomJS()
-    for district, name in districts.iteritems():
-        main_district(district, name, driver)
-
 
 def main_district(district, name, driver=None):
-    if driver is None:
-        driver = makePhantomJS()
     processed = False
     n_errors = 0
     while not processed:
         processed = process_district(driver, district, name)
         if not processed:
-            driver = makePhantomJS()
             n_errors += 1
             if n_errors > 5:
                 break
@@ -130,11 +124,3 @@ def mainConc(districts, n_threads):
     [p.start() for p in processes]
     [p.join() for p in processes]
 
-
-def makePhantomJS():
-    driver = selenium.webdriver.PhantomJS()
-    # driver = selenium.webdriver.Firefox()
-    driver.implicitly_wait(30)
-    driver.set_page_load_timeout(60)
-    return driver
-    # return selenium.webdriver.Firefox()
