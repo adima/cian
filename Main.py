@@ -23,7 +23,7 @@ def process_district(driver, district, name):
         while errors <= max_errors:
             try:
                 resp = requests.get(url, cookies=cook)
-                return resp
+                return BeautifulSoup(resp.text, 'html.parser')
             except:
                 logger.exception('Loading page exception')
                 errors += 1
@@ -34,9 +34,7 @@ def process_district(driver, district, name):
         init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
                    '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
         cook = {'serp_view_mode': 'table'}
-        resp = load_page(init_url)
-        soup = BeautifulSoup(resp.text, 'html.parser')
-
+        soup = load_page(init_url)
         result_n = int(soup.find('div', class_='serp-above__count').strong.getText())
         logger.info('%s %s results' % (district, result_n))
         n_pages = np.ceil(result_n / float(25))
@@ -47,7 +45,7 @@ def process_district(driver, district, name):
                 page_n)
             logger.info('District %s: %s. Page %s out of %s' % (district, name,  page_n, n_pages))
             if page_n > 1:
-                resp = load_page(init_url)
+                soup = load_page(init_url)
 
             tbody = driver.find_elements_by_tag_name('tbody')[1]
             if len(tbody.text) == 0:
