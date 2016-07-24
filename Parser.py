@@ -7,6 +7,7 @@ from transliterate import translit
 
 from Main import logger, fh, ch, formatter, mainConc
 from Reference import districts
+from bs4 import BeautifulSoup
 
 logger.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
@@ -42,19 +43,20 @@ def parse_row(row):
         elif col[-1] == '2':
             row_dict['room_number_lab'] = col_el.find('a').getText()
         elif col[-1] == '3':
-            for col_it in col_el.text.split('\n'):
-                col_it_split = col_it.split(':')
-                split_first = col_it_split[0]
-                if split_first == u'Общая':
-                    row_dict['area_overall_raw'] = col_it_split[1]
-                elif split_first == u'Кухня':
-                    row_dict['area_kitchen_raw'] = col_it_split[1]
-                elif split_first == u'Жилая':
-                    row_dict['area_living_raw'] = col_it_split[1]
-                else:
-                    row_dict['area_rooms_raw'] = col_it_split[0]
+            for col_it in col_el.getText().split('\n'):
+                if len(col_it) > 0:
+                    col_it_split = col_it.split(':')
+                    split_first = col_it_split[0]
+                    if split_first == u'Общая':
+                        row_dict['area_overall_raw'] = col_it_split[1]
+                    elif split_first == u'Кухня':
+                        row_dict['area_kitchen_raw'] = col_it_split[1]
+                    elif split_first == u'Жилая':
+                        row_dict['area_living_raw'] = col_it_split[1]
+                    else:
+                        row_dict['area_rooms_raw'] = col_it_split[0]
         elif col[-1] == '4':
-            for n, it in enumerate(col_el.text.split('\n')):
+            for n, it in enumerate(col_el.getText().split('\n')):
                 try:
                     number = int(''.join([el for el in it if el.isdigit()]))
                 except:
