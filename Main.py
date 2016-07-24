@@ -47,27 +47,7 @@ def process_district(driver, district, name):
             if page_n > 1:
                 soup = load_page(init_url)
 
-            tbody = driver.find_elements_by_tag_name('tbody')[1]
-            if len(tbody.text) == 0:
-                page_loaded = False
-                while not page_loaded:
-                    try:
-                        [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
-                        driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
-                        tbody = driver.find_elements_by_tag_name('tbody')[1]
-                        driver.save_screenshot('screen.png')
-                        page_loaded = True
-                    except:
-                        logger.exception('Switch to other view')
-                        page_loaded = False
-
-                        # [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
-                        # driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
-                    # [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
-
-            # for tbody in tbodies:
-            rows = tbody.find_elements_by_tag_name('tr')
-            rows = [row for row in rows if row.get_attribute('id').split('_')[0] == 'offer']
+            rows = [row for row in soup.body.find_all('table')[1].tbody.find_all('tr') if row.get('id')]
             res = pd.DataFrame(map(parse_row, rows))
             # res
             final_list.append(res)
