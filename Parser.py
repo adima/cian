@@ -25,22 +25,22 @@ def parse_row(row):
     columns = ['objects_item_info_col_%s' % n for n in range(1, 10)]
     columns.remove('objects_item_info_col_8')
     for col in columns:
-        col_el = row.find_element_by_class_name(col)
+        col_el = row.find('td', class_=col)
         if col == 'objects_item_info_col_1':
-            col_divs = col_el.find_elements_by_tag_name('div')
-            col_as = col_el.find_elements_by_tag_name('a')
+            col_divs = col_el.find_all('div')
+            col_as = col_el.find_all('a')
             row_dict['lat'], row_dict['lng'] = \
-                col_divs[0].find_element_by_tag_name('input').get_attribute('value').split(',')
+                col_divs[0].find('input').get('value').split(',')
             try:
-                row_dict['metro_name'] = col_divs[1].find_element_by_tag_name('a').text
-                row_dict['metro_distance_lab'] = col_divs[1].find_elements_by_tag_name('span')[1].text
+                row_dict['metro_name'] = col_divs[1].find('a').getText()
+                row_dict['metro_distance_lab'] = col_divs[1].find('span')[1].getText()
             except:
                 pass
-            row_dict['city'] = col_as[1].text
-            row_dict['district'] = col_as[2].text
-            row_dict['address'] = ' '.join(map(lambda x: x.text, col_as[3:]))
+            row_dict['city'] = col_as[1].getText()
+            row_dict['district'] = col_as[2].getText()
+            row_dict['address'] = ' '.join(map(lambda x: x.getText(), col_as[3:]))
         elif col[-1] == '2':
-            row_dict['room_number_lab'] = col_el.find_element_by_tag_name('a').text
+            row_dict['room_number_lab'] = col_el.find('a').getText()
         elif col[-1] == '3':
             for col_it in col_el.text.split('\n'):
                 col_it_split = col_it.split(':')

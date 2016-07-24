@@ -57,7 +57,6 @@ def process_district(driver, district, name):
     except:
         # print ("Unexpected error:", sys.exc_info()[0])
         logger.exception('Exception %s ' % name)
-        driver.save_screenshot('error_%s_%s.png' % (name, datetime.datetime.now().strftime('%m%d%H%M%s')))
         return False
 
 
