@@ -35,9 +35,9 @@ def process_district(driver, district, name):
                    '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
         cook = {'serp_view_mode': 'table'}
         resp = load_page(init_url)
+        soup = BeautifulSoup(resp.text, 'html.parser')
 
-        result_n = int(
-            resp.find_element_by_class_name('serp-above__count').find_elements_by_tag_name('strong')[0].text)
+        result_n = int(soup.find('div', class_='serp-above__count').strong.getText())
         logger.info('%s %s results' % (district, result_n))
         n_pages = np.ceil(result_n / float(25))
         for page_n in range(1, int(n_pages) + 1):
