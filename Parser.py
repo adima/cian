@@ -28,7 +28,7 @@ logger.addHandler(fh)
 def parse_row(row):
     row_dict = {}
     row_dict['offer_id'] = row.get_attribute('oid')
-    print row_dict['offer_id']
+    # print row_dict['offer_id']
     row_dict['datetime_add'] = datetime.datetime.now()
     columns = ['objects_item_info_col_%s' % n for n in range(1, 10)]
     columns.remove('objects_item_info_col_8')
@@ -151,8 +151,10 @@ def process_district(driver, district, name):
                        '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p={}&totime=86400'.format(
                 district,
                 page_n)
+            logger.info('District %s: %s. Page %s out of %s' % (district, name,  page_n, n_pages))
             if page_n > 1:
                 page_loaded = False
+                error_ct = 0
                 while not page_loaded:
                     try:
                         driver.get(init_url)
@@ -160,6 +162,11 @@ def process_district(driver, district, name):
                     except:
                         logger.exception('Loading page exception')
                         page_loaded = False
+                        error_ct += 1
+                        if error_ct == 10:
+                            driver = makePhantomJS()
+
+
             driver.save_screenshot('screen.png')
             tbody = driver.find_elements_by_tag_name('tbody')[1]
             if len(tbody.text) == 0:
@@ -168,6 +175,8 @@ def process_district(driver, district, name):
                     try:
                         [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
                         driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
+                        tbody = driver.find_elements_by_tag_name('tbody')[1]
+                        driver.save_screenshot('screen.png')
                         page_loaded = True
                     except:
                         logger.exception('Switch to other view')
@@ -176,8 +185,7 @@ def process_district(driver, district, name):
                         # [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
                         # driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
                     # [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
-                tbody = driver.find_elements_by_tag_name('tbody')[1]
-                driver.save_screenshot('screen.png')
+
             # for tbody in tbodies:
             rows = tbody.find_elements_by_tag_name('tr')
             rows = [row for row in rows if row.get_attribute('id').split('_')[0] == 'offer']
@@ -233,7 +241,8 @@ def mainConc(districts, n_threads):
 def makePhantomJS():
     driver = selenium.webdriver.PhantomJS()
     # driver = selenium.webdriver.Firefox()
-    driver.implicitly_wait(60)
+    driver.implicitly_wait(30)
+    driver.set_page_load_timeout(60)
     return driver
     # return selenium.webdriver.Firefox()
 
@@ -257,5 +266,5 @@ if __name__ == '__main__':
     #     parse_row(row)
     # main(districts.iloc[120:])
     # main(districts.iloc[120:]) #good district for exception debugging
-    mainConc(districts.ix[28:], 6)
+    mainConc(districts.ix[43:], 1)
 
