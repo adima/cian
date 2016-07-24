@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import requests
 import time
+
+from bs4 import BeautifulSoup
 from Parser import parse_row
 from Reference import districts
 
@@ -16,28 +18,27 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s' )
 
 
 def process_district(driver, district, name):
+    def load_page(url, max_errors):
+        errors = 0
+        while errors <= max_errors:
+            try:
+                resp = requests.get(url, cookies=cook)
+                return resp
+            except:
+                logger.exception('Loading page exception')
+                errors += 1
+                time.sleep(5)
     try:
         final_list = []
         logger.info('Processing %s' % name)
         init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
                    '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
         cook = {'serp_view_mode': 'table'}
-        page_loaded = False
-        while not page_loaded:
-            try:
-                driver.get(init_url)
-                page_loaded = True
-            except:
-                logger.exception('Loading page exception')
-                page_loaded = False
-                time.sleep(5)
+        resp = load_page(init_url)
 
-        [pp.click() for pp in driver.find_elements_by_class_name("popup_closer") if pp.is_displayed()]
-        # if district == districts.index[0]:
-        #     driver.find_element_by_xpath('//*[@id="layout"]/div[3]/div/div[2]/div/div[2]/a[1]').click()
         result_n = int(
-            driver.find_element_by_class_name('serp-above__count').find_elements_by_tag_name('strong')[0].text)
-        print '%s results' % result_n
+            resp.find_element_by_class_name('serp-above__count').find_elements_by_tag_name('strong')[0].text)
+        logger.info('%s %s results' % (district, result_n))
         n_pages = np.ceil(result_n / float(25))
         for page_n in range(1, int(n_pages) + 1):
             init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
@@ -46,21 +47,8 @@ def process_district(driver, district, name):
                 page_n)
             logger.info('District %s: %s. Page %s out of %s' % (district, name,  page_n, n_pages))
             if page_n > 1:
-                page_loaded = False
-                error_ct = 0
-                while not page_loaded:
-                    try:
-                        driver.get(init_url)
-                        page_loaded = True
-                    except:
-                        logger.exception('Loading page exception')
-                        page_loaded = False
-                        error_ct += 1
-                        if error_ct == 10:
-                            driver = makePhantomJS()
+                resp = load_page(init_url)
 
-
-            driver.save_screenshot('screen.png')
             tbody = driver.find_elements_by_tag_name('tbody')[1]
             if len(tbody.text) == 0:
                 page_loaded = False
