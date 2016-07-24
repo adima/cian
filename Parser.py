@@ -8,13 +8,14 @@ import numpy as np
 import sys
 import multiprocessing as mp
 import logging
+import logging.handlers
 import time
 
 from Reference import districts
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('cian.log')
+fh = logging.handlers.RotatingFileHandler('cian.log', maxBytes=50e6, backupCount=3)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s' )
 fh.setFormatter(formatter)
