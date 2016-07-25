@@ -56,24 +56,21 @@ def parse_row(row):
                     else:
                         row_dict['area_rooms_raw'] = col_it_split[0]
         elif col[-1] == '4':
-            for n, it in enumerate(col_el.getText().split('\n')):
-                try:
-                    number = int(''.join([el for el in it if el.isdigit()]))
-                except:
-                    continue
-                if n == 0:
-                    row_dict['price_rub'] = number
-                elif n == 1:
-                    row_dict['price_dollars'] = number
-                elif n == 2:
-                    row_dict['price_square_meter_r'] = number
+            get_digit = lambda x: int(''.join([el for el in x if el.isdigit()]))
+            row_dict['price_rub'] = get_digit(col_el.find('div', class_='objects_item_price').strong.getText())
+            row_dict['price_dollars'] = get_digit(col_el.find('div', class_='objects_item_second_price').getText())
+            row_dict['price_square_meter_r'] = get_digit(col_el.find('div', style='color:green;').getText())
         elif col[-1] == '5':
-            split = col_el.text.split('\n')
+            split = col_el.getText().split('\n')
+            split = map(lambda x: x.replace(' ', ''), split)
+            split = [x for x in split if len(x) > 0]
             row_dict['floor_raw'] = split[0]
             if len(split) > 1:
                 row_dict['house_type'] = split[1]
         elif col[-1] == '6':
-            for item in col_el.text.split('\n'):
+            tds = col_el.find_all('td')
+            tds = map(lambda x: x.get_text(strip=True).replace('\n', '').replace(' ', ''), tds)
+            for item in tds:
                 item_split = item.split(':')
                 if len(item_split) > 1:
                     key = 'addinfo_' + translit(item_split[0], reversed=True).lower().replace(' ', '_')
@@ -89,21 +86,14 @@ def parse_row(row):
                     elif item_val == u'Альтернатива':
                         row_dict['deal_alt'] = 1
         elif col[-1] == '7':
-            row_dict['telephone'] = col_el.text
+            row_dict['telephone'] = col_el..getText(strip=True)
 
         elif col[-1] == '9':
-            split = col_el.text.split('\n')
-            len_split = len(split)
-            for n, it in enumerate(split):
-                if n == 0:
-                    row_dict['pay_status'] = it
-                    continue
-                elif n == 1:
-                    row_dict['date_raw'] = it
-                    continue
-                elif n == 2:
-                    row_dict['seller_id'] = it
-                    continue
+            row_dict['pay_status'] =\
+                col_el.find('a',
+                            class_ = 'c-iconed c-iconed_m objects_item_payment_status_link_paid').get_text(strip=True)
+                row_dict['date_raw'] = col_el.find('span', class_='objects_item_dt_added').get_text(strip=True)
+                row_dict['seller_id'] = it
                 if len_split == 7:
                     if n == 3:
                         row_dict['seller_status'] = it
