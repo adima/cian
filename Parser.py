@@ -91,20 +91,12 @@ def parse_row(row):
         elif col[-1] == '9':
             row_dict['pay_status'] =\
                 col_el.find('a',
-                            class_ = 'c-iconed c-iconed_m objects_item_payment_status_link_paid').get_text(strip=True)
-                row_dict['date_raw'] = col_el.find('span', class_='objects_item_dt_added').get_text(strip=True)
-                row_dict['seller_id'] = it
-                if len_split == 7:
-                    if n == 3:
-                        row_dict['seller_status'] = it
-                    elif n == 4:
-                        row_dict['ad_text'] = it
-                else:
-                    if n == 3:
-                        row_dict['ad_text'] = it
-            for el in col_el.find_elements_by_tag_name('a'):
-                if el.text == u'Перейти к странице объявления':
-                    row_dict['ad_href'] = el.get_attribute('href')
+                        class_ = 'c-iconed c-iconed_m objects_item_payment_status_link_paid').get_text(strip=True)
+            row_dict['date_raw'] = col_el.find('span', class_='objects_item_dt_added').get_text(strip=True)
+            row_dict['seller_id'] = [a for a in col_el.find_all('a') if 'cat.php?id_user' in a.get('href')][0].get_text()
+            row_dict['seller_status'] = col_el.find('span', class_='objects_item_realtor_checked_text').get_text(strip=True)
+            row_dict['ad_text'] = col_el.find('div', class_='objects_item_info_col_comment_text no-truncate').get_text(strip=True)
+            row_dict['ad_href'] = col_el.find('a', class_='objects_item_info_col_card_link no-mobile').get('href')
     return row_dict
 
 
