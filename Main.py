@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import requests
 import time
+import pickle
 
 from bs4 import BeautifulSoup
 from transliterate import translit
@@ -75,7 +76,7 @@ def parse_row(row):
             split = col_el.getText().split('\n')
             split = map(lambda x: x.replace(' ', ''), split)
             split = [x for x in split if len(x) > 0]
-            row_dict['floor_raw'] = split[0]
+            row_dict['floor_raw'] = split[0] if len(split) > 0 else pd.np.nan
             if len(split) > 1:
                 row_dict['house_type'] = split[1]
         elif col[-1] == '6':
@@ -153,6 +154,9 @@ def process_district(driver, district, name):
     except:
         # print ("Unexpected error:", sys.exc_info()[0])
         logger.exception('Exception %s ' % name)
+        if 'soup' in locals():
+            with open('exception_soup_%s' % datetime.datetime.now().strftime('%m%d%H%M%s'), 'w') as f:
+                pickle.dump(soup, f)
         return False
 
 
@@ -186,4 +190,4 @@ def mainConc(districts, n_threads):
     [p.join() for p in processes]
 
 if __name__ == '__main__':
-    mainConc(districts.ix[20:], 6)
+    mainConc(districts.ix[[70]], 6)
