@@ -3,6 +3,7 @@ import datetime
 import logging
 import logging.handlers
 import multiprocessing as mp
+import os
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,10 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(fh)
 
-
+start_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
+pickle_path = os.path.join('.', 'pickle', start_str)
+if not os.path.exists(pickle_path):
+    os.mkdir(pickle_path)
 
 
 def parse_row(row):
@@ -149,13 +153,13 @@ def process_district(driver, district, name):
             # res
             final_list.append(res)
         res_final = pd.concat(final_list)
-        res_final.to_pickle('res_%s_%s.pickle' % (district, datetime.datetime.now().strftime('%m%d%H%M%s')))
+        res_final.to_pickle('%s/res_%s_%s.pickle' % (pickle_path, district, datetime.datetime.now().strftime('%m%d%H%M%s')))
         return True
     except:
         # print ("Unexpected error:", sys.exc_info()[0])
         logger.exception('Exception %s ' % name)
         if 'soup' in locals():
-            with open('exception_soup_%s' % datetime.datetime.now().strftime('%m%d%H%M%s'), 'w') as f:
+            with open('./error/exception_soup_%s' % datetime.datetime.now().strftime('%m%d%H%M%s'), 'w') as f:
                 pickle.dump(soup, f)
         return False
 
