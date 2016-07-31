@@ -1,4 +1,6 @@
 # coding=utf-8
+from samba.netcmd.dns import data_to_dns_record
+
 import datetime
 import logging
 import logging.handlers
@@ -14,6 +16,13 @@ import pickle
 from bs4 import BeautifulSoup
 from transliterate import translit
 from Reference import districts
+import sys
+
+import airflow
+
+sys.setrecursionlimit(50000)
+conn = airflow.hooks.MySqlHook('data').get_conn()
+
 
 logger = logging.getLogger(__name__)
 fh = logging.handlers.RotatingFileHandler('cian.log', maxBytes=50e6, backupCount=3)
@@ -28,6 +37,7 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(fh)
 
+dt_start = datetime.datetime.now()
 start_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
 pickle_path = os.path.join('.', 'pickle', start_str)
 if not os.path.exists(pickle_path):
@@ -131,12 +141,15 @@ def process_district(driver, district, name):
                 time.sleep(5)
     try:
         final_list = []
-        logger.info('Processing %s' % name)
+        logger.info(u'Processing %s' % name.decode('utf-8'))
         init_url = 'http://www.cian.ru/cat.php?deal_type=sale' \
                    '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p=1&totime=86400'.format(district)
         cook = {'serp_view_mode': 'table'}
         soup = load_page(init_url)
-        result_n = int(soup.find('div', class_='serp-above__count').strong.getText())
+        try:
+            result_n = int(soup.find('div', class_='serp-above__count').strong.getText())
+        except AttributeError:
+            return True
         logger.info('%s %s results' % (district, result_n))
         n_pages = np.ceil(result_n / float(25))
         for page_n in range(1, int(n_pages) + 1):
@@ -144,7 +157,7 @@ def process_district(driver, district, name):
                        '&district%5B0%5D={}&engine_version=2&maxtarea=60&offer_type=flat&p={}&totime=86400'.format(
                 district,
                 page_n)
-            logger.info('District %s: %s. Page %s out of %s' % (district, name,  page_n, n_pages))
+            logger.info(u'District %s: %s. Page %s out of %s' % (district, name.decode('utf-8'),  page_n, n_pages))
             if page_n > 1:
                 soup = load_page(init_url)
 
@@ -153,11 +166,14 @@ def process_district(driver, district, name):
             # res
             final_list.append(res)
         res_final = pd.concat(final_list)
+        res_final['district'] = name
+        res_final['datetime_add'] = dt_start
+        res_final.to_sql('raw_cian', conn, if_exists='append', flavor='mysql', index=False)
         res_final.to_pickle('%s/res_%s_%s.pickle' % (pickle_path, district, datetime.datetime.now().strftime('%m%d%H%M%s')))
         return True
     except:
         # print ("Unexpected error:", sys.exc_info()[0])
-        logger.exception('Exception %s ' % name)
+        logger.exception(u'Exception %s, %s ' % (name.decode('utf-8'), init_url))
         if 'soup' in locals():
             with open('./error/exception_soup_%s' % datetime.datetime.now().strftime('%m%d%H%M%s'), 'w') as f:
                 pickle.dump(soup, f)
@@ -193,5 +209,6 @@ def mainConc(districts, n_threads):
     [p.start() for p in processes]
     [p.join() for p in processes]
 
+
 if __name__ == '__main__':
-    mainConc(districts.ix[[70]], 6)
+    mainConc(districts, 10)
