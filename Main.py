@@ -20,8 +20,9 @@ import sys
 
 import airflow
 
+hook_ = airflow.hooks.MySqlHook('data')
 sys.setrecursionlimit(50000)
-conn = airflow.hooks.MySqlHook('data').get_conn()
+
 
 
 logger = logging.getLogger(__name__)
@@ -128,7 +129,7 @@ def parse_row(row):
 
 
 
-def process_district(driver, district, name):
+def process_district(driver, district, name, conn):
     def load_page(url, max_errors=10):
         errors = 0
         while errors <= max_errors:
@@ -181,11 +182,13 @@ def process_district(driver, district, name):
 
 
 
-def main_district(district, name, driver=None):
+def main_district(district, name, driver=None, conn=None):
     processed = False
     n_errors = 0
+    if conn is None:
+        conn = hook_.get_conn()
     while not processed:
-        processed = process_district(driver, district, name)
+        processed = process_district(driver, district, name, conn)
         if not processed:
             n_errors += 1
             if n_errors > 5:
@@ -197,7 +200,8 @@ def main_district_cc(q_in, i):
     while not q_in.empty():
         district, name = q_in.get()
         # driver = makePhantomJS()
-        main_district(district, name)
+        conn = hook_.get_conn()
+        main_district(district, name, conn)
 
 
 def mainConc(districts, n_threads):
